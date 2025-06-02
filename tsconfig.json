@@ -1,11 +1,16 @@
 {
   "compilerOptions": {
-    "target": "ES6",
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "outDir": "dist",
-    "rootDir": "src",
-    "strict": true,
-    "esModuleInterop": true
-  }
+    "target": "ES2020",                         // Better modern JS features like optional chaining, nullish coalescing
+    "module": "CommonJS",                       // Node.js uses CommonJS (ESM if you're using latest Node and want native imports)
+    "moduleResolution": "node",                 // Properly resolves modules from node_modules
+    "outDir": "dist",                           // Where compiled .js files go
+    "rootDir": "src",                           // Where your .ts source files live
+    "strict": true,                             // Enable all strict type-checking options
+    "esModuleInterop": true,                    // Allows default imports from CommonJS
+    "forceConsistentCasingInFileNames": true,   // Helps avoid case-sensitivity bugs in Linux/Mac
+    "skipLibCheck": true,                       // Speeds up compilation by skipping .d.ts type checking
+    "resolveJsonModule": true                   // Allows importing `.json` files
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }
