@@ -1,8 +1,9 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Model } from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { IUserDocument } from "../types/user";
 
-const userSchema = new Schema(
+const userSchema = new Schema<IUserDocument>(
   {
     username: {
       type: String,
@@ -89,4 +90,7 @@ userSchema.methods.generateRefreshToken = function () {
   return jwt.sign({ _id: this._id }, secret, { expiresIn });
 };
 
-export const User = mongoose.model("User", userSchema);
+export const User: Model<IUserDocument> = mongoose.model<IUserDocument>(
+  "User",
+  userSchema
+);

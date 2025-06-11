@@ -7,3 +7,5 @@ const asyncHandler = (
     handler(req, res, next).catch(next);
   };
 };
+
+export { asyncHandler };
