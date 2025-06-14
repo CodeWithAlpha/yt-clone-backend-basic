@@ -14,14 +14,17 @@ const videoSchema = new Schema<IVideo>(
     title: {
       type: String,
       required: true,
+      maxlength: 150,
     },
     description: {
       type: String,
       required: true,
+      maxlength: 1000,
     },
     duration: {
       type: Number,
       required: true,
+      min: [1, "Duration must be greater than 0"],
     },
     views: {
       type: Number,
@@ -34,10 +37,14 @@ const videoSchema = new Schema<IVideo>(
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
   },
   { timestamps: true }
 );
+
+// Optional: index for text search
+videoSchema.index({ title: "text", description: "text" });
 
 export const Video: Model<IVideo> = mongoose.model<IVideo>(
   "Video",

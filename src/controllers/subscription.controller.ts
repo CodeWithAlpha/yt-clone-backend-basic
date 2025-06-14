@@ -3,37 +3,42 @@ import { Subscription } from "../models/subscription.model";
 import { asyncHandler } from "../utils/asyncHandler";
 import { IUserDocument } from "../types/user";
 import { ApiResponse } from "../utils/apiResponse";
-import { ApiError } from "../utils/apiError";
 import { User } from "../models/user.model";
-import mongoose from "mongoose";
 
 const subscribeChannel = asyncHandler(async (req, res) => {
   try {
+    // Get channel ID from route params
     const { channelid } = req.params;
 
+    // Validate channel ID presence
     if (!channelid) {
-      throw new ApiError(400, "Invalid channel");
+      throw new Error("Invalid channel");
     }
 
+    // Get currently logged-in user's ID
     const subscriberId = (req as Request & { user: IUserDocument }).user._id;
 
+    // Check if the user is already subscribed to the channel
     const existingSubscription = await Subscription.findOne({
       channel: channelid,
       subscriber: subscriberId,
     });
 
+    // If already subscribed, then unsubscribe (toggle behavior)
     if (existingSubscription) {
       await Subscription.deleteOne({ _id: existingSubscription._id });
       return res
         .status(200)
-        .json(new ApiResponse(200, null, "Unsubscribed Successfully"));
+        .json(new ApiResponse(200, null, "Unsubscribed successfully"));
     }
 
+    // Check if the channel (user) actually exists
     const channelExists = await User.exists({ _id: channelid });
     if (!channelExists) {
-      throw new ApiError(404, "Channel not found");
+      throw new Error("Channel not found");
     }
 
+    // Create a new subscription if not already subscribed
     await Subscription.create({
       channel: channelid,
       subscriber: subscriberId,
@@ -41,9 +46,10 @@ const subscribeChannel = asyncHandler(async (req, res) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, null, "Subscribed Successfully"));
-  } catch (error) {
-    throw new ApiError(400, (error as Error).message);
+      .json(new ApiResponse(200, null, "Subscribed successfully"));
+  } catch (error: any) {
+    // Catch any validation or server error
+    return res.status(400).json(new ApiResponse(400, null, error.message));
   }
 });
 

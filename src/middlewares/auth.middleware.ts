@@ -1,13 +1,13 @@
-import { NextFunction, Request } from "express";
+import { NextFunction, Request, Response } from "express";
 import { User } from "../models/user.model";
-import { ApiError } from "../utils/apiError";
 import { asyncHandler } from "../utils/asyncHandler";
 import jwt from "jsonwebtoken";
 import { IUserDocument } from "../types/user";
 import { accessTokenJwtPayload } from "../types/jwt";
+import { ApiResponse } from "../utils/apiResponse";
 
 export const verifyJWT = asyncHandler(
-  async (req: Request, _, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     //find token
     try {
       const token =
@@ -15,7 +15,7 @@ export const verifyJWT = asyncHandler(
         req.headers?.authorization?.replace("Bearer ", "");
 
       if (!token) {
-        throw new ApiError(410, "Unathorized Request");
+        throw new Error("Unathorized Request");
       }
 
       //decode token
@@ -29,15 +29,15 @@ export const verifyJWT = asyncHandler(
         "-password -refreshToken"
       );
       if (!existedUser) {
-        throw new ApiError(400, "Invalid User");
+        throw new Error("Invalid User");
       }
 
       // add user object to request body
       (req as Request & { user: IUserDocument }).user = existedUser;
 
       next();
-    } catch (error) {
-      throw new ApiError(422, "Error while validate user.");
+    } catch (error: any) {
+      return res.status(400).json(new ApiResponse(400, null, error.message));
     }
   }
 );

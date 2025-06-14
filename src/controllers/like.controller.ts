@@ -1,134 +1,148 @@
 import { Request } from "express";
-import { Comment } from "../models/comment.model";
 import { Video } from "../models/video.model";
-import { ApiError } from "../utils/apiError";
 import { asyncHandler } from "../utils/asyncHandler";
 import { IUserDocument } from "../types/user";
 import { ApiResponse } from "../utils/apiResponse";
 import { Like } from "../models/likes.model";
 
-const createLike = async ({
-  commentId,
-  videoId,
-  userId,
-}: {
-  commentId?: string;
-  videoId: string;
-  userId: string;
-}) => {
-  // Optional: prevent duplicate like
-
-  const payload: any = {
-    video: videoId,
-    likedBy: userId,
-  };
-
-  if (commentId) {
-    payload.comment = commentId; // only add if it exists and is valid
-  }
-
-  const alreadyLiked = await Like.findOne(payload);
-
-  if (alreadyLiked) return { alreadyLiked: true, like: alreadyLiked };
-
-  const like = await Like.create(payload);
-
-  return { alreadyLiked: false, like };
-};
-
 const postLikeVideo = asyncHandler(async (req, res) => {
-  const { videoId, isLike } = req.body;
-  const userId = (req as Request & { user: IUserDocument }).user._id as string;
+  try {
+    // Destructure videoId and isLike from request body
+    const { videoId, isLike } = req.body;
 
-  if (!videoId) throw new ApiError(400, "Video ID is required.");
-  if (isLike == null) throw new ApiError(400, "Like or dislike is required.");
+    // Extract user ID from authenticated request
+    const userId = (req as Request & { user: IUserDocument }).user
+      ._id as string;
 
-  const videoExists = await Video.exists({ _id: videoId });
-  if (!videoExists) throw new ApiError(404, "Video not found.");
+    // Validate: videoId must be present
+    if (!videoId) throw new Error("Video ID is required.");
 
-  const isAlreadyExist = await Like.findOne({
-    $and: [{ likeType: "video" }, { video: videoId }, { likedBy: userId }],
-  });
+    // Validate: isLike must not be null or undefined (both true and false are valid)
+    if (isLike == null) throw new Error("Like or dislike is required.");
 
-  if (isAlreadyExist) {
-    if (isAlreadyExist.isLike == isLike) {
+    // Check if video with the given ID exists
+    const videoExists = await Video.exists({ _id: videoId });
+    if (!videoExists) throw new Error("Video not found.");
+
+    // Check if the user has already liked/disliked this video
+    const isAlreadyExist = await Like.findOne({
+      $and: [
+        { likeType: "video" }, // like type filter
+        { video: videoId }, // same video
+        { likedBy: userId }, // by same user
+      ],
+    });
+
+    // If like/dislike already exists
+    if (isAlreadyExist) {
+      // If the like/dislike state is the same, return early with message
+      if (isAlreadyExist.isLike === isLike) {
+        return res
+          .status(400)
+          .json(
+            new ApiResponse(
+              400,
+              isAlreadyExist,
+              `Already ${isLike ? "liked" : "disliked"} the video.`
+            )
+          );
+      }
+
+      // Else, update the isLike field
+      isAlreadyExist.isLike = isLike;
+      const updatedLike = await isAlreadyExist.save();
+
       return res
-        .status(400)
-        .json(
-          new ApiResponse(
-            400,
-            isAlreadyExist,
-            `Already ${isLike ? "liked" : "disliked"} the video.`
-          )
-        );
+        .status(200)
+        .json(new ApiResponse(200, updatedLike, `Success.`));
     }
 
-    isAlreadyExist.isLike = isLike;
-    const updatedLike = await isAlreadyExist.save({});
+    // If no previous like/dislike, create a new one
+    const likedVideo = await Like.create({
+      likeType: "video",
+      isLike,
+      video: videoId,
+      likedBy: userId,
+    });
 
-    return res.status(200).json(new ApiResponse(200, updatedLike, `success.`));
+    return res
+      .status(200)
+      .json(new ApiResponse(200, likedVideo, "Video liked successfully."));
+  } catch (error: any) {
+    // Catch and return error as a 400 Bad Request
+    return res.status(400).json(new ApiResponse(400, null, error.message));
   }
-
-  const likedVideo = await Like.create({
-    likeType: "video",
-    isLike,
-    video: videoId,
-    likedBy: userId,
-  });
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, likedVideo, "Video liked successfully."));
 });
 
 const postLikeTheComment = asyncHandler(async (req, res) => {
-  const { commentId, videoId, isLike } = req.body;
-  const userId = (req as Request & { user: IUserDocument }).user._id as string;
+  try {
+    // Extract required fields from request body
+    const { commentId, videoId, isLike } = req.body;
 
-  if (!videoId || !commentId || isLike == null)
-    throw new ApiError(400, "All fields are required.");
+    // Extract authenticated user ID
+    const userId = (req as Request & { user: IUserDocument }).user
+      ._id as string;
 
-  const videoExists = await Video.exists({ _id: videoId });
-  if (!videoExists) throw new ApiError(404, "Video not found.");
+    // Validate all required fields are present
+    if (!videoId || !commentId || isLike == null)
+      throw new Error("All fields are required.");
 
-  const isAlreadyExist = await Like.findOne({
-    $and: [
-      { likeType: "comment" },
-      { video: videoId },
-      { likedBy: userId },
-      { comment: commentId },
-    ],
-  });
+    // Check if the associated video exists
+    const videoExists = await Video.exists({ _id: videoId });
+    if (!videoExists) throw new Error("Video not found.");
 
-  if (isAlreadyExist) {
-    if (isAlreadyExist.isLike == isLike) {
+    // Check if the user has already liked/disliked this comment on the video
+    const isAlreadyExist = await Like.findOne({
+      $and: [
+        { likeType: "comment" }, // specify this like is for a comment
+        { video: videoId }, // video it belongs to
+        { likedBy: userId }, // the user who liked/disliked
+        { comment: commentId }, // the comment being liked/disliked
+      ],
+    });
+
+    // If the like/dislike already exists
+    if (isAlreadyExist) {
+      // If the like/dislike is the same as the existing one, return early
+      if (isAlreadyExist.isLike === isLike) {
+        return res
+          .status(400)
+          .json(
+            new ApiResponse(
+              400,
+              isAlreadyExist,
+              `Already ${isLike ? "liked" : "disliked"} the comment.`
+            )
+          );
+      }
+
+      // Else, update the isLike status
+      isAlreadyExist.isLike = isLike;
+      const updatedLike = await isAlreadyExist.save();
+
       return res
-        .status(400)
+        .status(200)
         .json(
-          new ApiResponse(
-            400,
-            isAlreadyExist,
-            `Already ${isLike ? "liked" : "disliked"} the video.`
-          )
+          new ApiResponse(200, updatedLike, "Comment like status updated.")
         );
     }
-    isAlreadyExist.isLike = isLike;
-    const updatedLike = await isAlreadyExist.save({});
 
-    return res.status(200).json(new ApiResponse(200, updatedLike, "success."));
+    // If no previous like/dislike, create a new one
+    const likedComment = await Like.create({
+      likeType: "comment",
+      isLike,
+      video: videoId,
+      likedBy: userId,
+      comment: commentId,
+    });
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, likedComment, "Comment liked successfully."));
+  } catch (error: any) {
+    // Handle any runtime or validation error
+    return res.status(400).json(new ApiResponse(400, null, error.message));
   }
-
-  const likedVideo = await Like.create({
-    likeType: "comment",
-    isLike,
-    video: videoId,
-    likedBy: userId,
-    comment: commentId,
-  });
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, likedVideo, "Comment liked successfully."));
 });
 
 const getVideoLikes = asyncHandler(async (req, res) => {

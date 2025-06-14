@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import { Video } from "../models/video.model";
-import { ApiError } from "../utils/apiError";
 import { asyncHandler } from "../utils/asyncHandler";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 import { Request } from "express";
@@ -11,117 +10,152 @@ import jwt from "jsonwebtoken";
 
 const uploadVideo = asyncHandler(async (req, res) => {
   try {
+    // Extract fields from request body
     const { title, description, isPublished } = req.body;
 
+    // Validate required fields
     if (!title || !description || !isPublished) {
-      throw new ApiError(400, "All fields are required.");
+      throw new Error("All fields are required.");
     }
 
+    // Access uploaded thumbnail path
     const thumbnailLocalPath = await (req.files as any)?.thumbnail[0].path;
 
+    // Ensure thumbnail is uploaded
     if (!thumbnailLocalPath) {
-      throw new ApiError(400, "Thumbnail is required.");
+      throw new Error("Thumbnail is required.");
     }
 
+    // Access uploaded video file path
     const videoFileLocalPath = await (req.files as any)?.videoFile[0].path;
 
+    // Ensure video file is uploaded
     if (!videoFileLocalPath) {
-      throw new ApiError(400, "Video file is required.");
+      throw new Error("Video file is required.");
     }
 
+    // Upload thumbnail to Cloudinary
     const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
+
+    // Upload video file to Cloudinary
     const videoFile = await uploadOnCloudinary(videoFileLocalPath);
 
+    // Check if both uploads were successful
     if (!thumbnail || !videoFile) {
-      throw new ApiError(400, "Error while upload.");
+      throw new Error("Error while upload.");
     }
 
+    // Create new video document
     const video = await Video.create({
       videoFile: videoFile.url,
       thumbnail: thumbnail.url,
       title,
       description,
-      duration: videoFile.duration,
+      duration: videoFile.duration, // optional: if Cloudinary returns duration
       isPublished,
       owner: new mongoose.Types.ObjectId(
         String((req as Request & { user: IUserDocument }).user._id)
       ),
     });
 
+    // Return success response
     return res
       .status(200)
       .json(new ApiResponse(200, video, "Video upload successfully."));
-  } catch (error) {
-    throw new ApiError(400, error as string);
+  } catch (error: any) {
+    // Return error response
+    return res.status(400).json(new ApiResponse(400, null, error.message));
   }
 });
 
 const editVideo = asyncHandler(async (req, res) => {
   try {
+    // Get video ID from route parameters
     const { id } = req.params;
+
+    // Get updated fields from request body
     const { title, description, isPublished } = req.body;
 
+    // Find the video by ID
     const existingVideo = await Video.findById(id);
 
+    // Check if video exists
     if (!existingVideo) {
-      throw new ApiError(400, "Video does not exists");
+      throw new Error("Video does not exist");
     }
 
+    // Log uploaded file for debugging (optional)
     console.log(req.file);
+
+    // Get uploaded thumbnail path
     const thumbnailLocalPath = await (req.file as any)?.path;
 
+    // Check if thumbnail path is present
     if (!thumbnailLocalPath) {
-      throw new ApiError(400, "Error while upload Thumbnail");
+      throw new Error("Error while uploading thumbnail");
     }
 
+    // Upload thumbnail to Cloudinary
     const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
 
+    // Ensure thumbnail upload succeeded
     if (!thumbnail) {
-      throw new ApiError(400, "Error while upload.");
+      throw new Error("Error while uploading thumbnail");
     }
 
+    // Update video fields
     existingVideo.title = title;
     existingVideo.description = description;
     existingVideo.isPublished = isPublished;
-    existingVideo.isPublished = isPublished;
     existingVideo.thumbnail = thumbnail.url;
 
+    // Save updated video
     const video = await existingVideo.save();
 
+    // Return success response
     return res
       .status(200)
-      .json(new ApiResponse(200, video, "Video update successfully"));
-  } catch (error) {
-    throw new ApiError(400, error as string);
+      .json(new ApiResponse(200, video, "Video updated successfully"));
+  } catch (error: any) {
+    // Return error response
+    return res.status(400).json(new ApiResponse(400, null, error.message));
   }
 });
 
 const getVideosFeed = asyncHandler(async (req, res) => {
   try {
+    // Parse pagination query params
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
+    // Aggregate published videos with pagination
     const videos = await Video.aggregate([
       {
+        // Only published videos
         $match: {
           isPublished: true,
         },
       },
-      { $sort: { createdAt: -1 } },
       {
+        // Sort newest first
+        $sort: { createdAt: -1 },
+      },
+      {
+        // Split data into two facets: metadata & videos
         $facet: {
           metadata: [{ $count: "total" }, { $addFields: { page, limit } }],
           videos: [{ $skip: skip }, { $limit: limit }],
         },
       },
       {
+        // Flatten metadata object
         $addFields: {
           metadata: { $arrayElemAt: ["$metadata", 0] },
         },
       },
-
       {
+        // Format response
         $project: {
           videos: 1,
           count: "$metadata.total",
@@ -131,12 +165,10 @@ const getVideosFeed = asyncHandler(async (req, res) => {
       },
     ]);
 
-    return res.status(200).json(new ApiResponse(200, videos, "success"));
-  } catch (error) {
-    console.log(error);
-    return res
-      .status(500)
-      .json(new ApiResponse(500, null, "Internal server error"));
+    // Return the response
+    return res.status(200).json(new ApiResponse(200, videos[0], "Success"));
+  } catch (error: any) {
+    return res.status(400).json(new ApiResponse(400, null, error.message));
   }
 });
 
@@ -288,11 +320,8 @@ const getVideoById = asyncHandler(async (req, res) => {
     }
 
     return res.status(200).json(new ApiResponse(200, video, "success"));
-  } catch (error) {
-    console.log(error);
-    return res
-      .status(500)
-      .json(new ApiResponse(500, null, "Internal server error"));
+  } catch (error: any) {
+    return res.status(400).json(new ApiResponse(400, null, error.message));
   }
 });
 
@@ -300,62 +329,57 @@ const getMyUploadedVideos = asyncHandler(async (req, res) => {
   try {
     const { page, limit, isPublished, title } = req.query;
 
+    // Set default pagination
     const pageSize = parseInt(page as string) || 1;
     const limitSize = parseInt(limit as string) || 10;
+    const skip = (pageSize - 1) * limitSize;
 
+    // Build filters dynamically
     const filters: any = {
       owner: new mongoose.Types.ObjectId(
         String((req as Request & { user: IUserDocument }).user._id)
       ),
     };
+
     if (typeof isPublished !== "undefined") {
       filters.isPublished = isPublished === "true";
     }
 
     if (typeof title === "string" && title.trim() !== "") {
-      filters.title = { $regex: title.trim(), $options: "i" };
+      filters.title = { $regex: title.trim(), $options: "i" }; // case-insensitive search
     }
 
+    // Run aggregate query with filtering and pagination
     const videos = await Video.aggregate([
-      {
-        $match: filters,
-      },
+      { $match: filters },
       { $sort: { createdAt: -1 } },
       {
         $facet: {
           metadata: [
             { $count: "total" },
-            { $addFields: { pageSize, limitSize } },
+            { $addFields: { page: pageSize, limit: limitSize } },
           ],
-          videos: [
-            { $skip: (pageSize - 1) * limitSize },
-            { $limit: limitSize },
-          ],
+          videos: [{ $skip: skip }, { $limit: limitSize }],
         },
       },
       {
         $addFields: {
-          metadata: {
-            $arrayElemAt: ["$metadata", 0],
-          },
+          metadata: { $arrayElemAt: ["$metadata", 0] },
         },
       },
       {
         $project: {
           videos: 1,
-          page: "$metadata.pageSize",
-          limit: "$metadata.limitSize",
+          page: "$metadata.page",
+          limit: "$metadata.limit",
           total: "$metadata.total",
         },
       },
     ]);
 
-    return res.status(200).json(new ApiResponse(200, videos[0], "success"));
-  } catch (error) {
-    console.log(error);
-    return res
-      .status(500)
-      .json(new ApiResponse(500, null, "Internal server error"));
+    return res.status(200).json(new ApiResponse(200, videos[0], "Success"));
+  } catch (error: any) {
+    return res.status(400).json(new ApiResponse(400, null, error.message));
   }
 });
 

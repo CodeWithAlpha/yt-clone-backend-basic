@@ -1,20 +1,22 @@
 import mongoose, { Model, Schema } from "mongoose";
-import { ILike } from "../types/like";
 import { IComment } from "../types/comment";
 
 const commentSchema = new Schema<IComment>(
   {
     content: {
       type: String,
-      required: true,
+      required: [true, "Comment content is required"],
+      trim: true,
     },
     video: {
       type: Schema.Types.ObjectId,
       ref: "Video",
+      required: true,
     },
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
   },
   { timestamps: true }

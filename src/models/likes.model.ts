@@ -5,10 +5,11 @@ const likeSchema = new Schema<ILike>(
   {
     likeType: {
       type: String,
+      enum: ["video", "comment"],
       required: true,
     },
     isLike: {
-      type: Boolean || null,
+      type: Boolean,
       default: null,
     },
     comment: {
@@ -22,19 +23,10 @@ const likeSchema = new Schema<ILike>(
     likedBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
   },
   { timestamps: true }
 );
-
-likeSchema.pre("validate", function (next) {
-  if (!this.video && !this.comment) {
-    next(
-      new Error("Like must be associated with either a video or a comment.")
-    );
-  } else {
-    next();
-  }
-});
 
 export const Like: Model<ILike> = mongoose.model<ILike>("Like", likeSchema);
