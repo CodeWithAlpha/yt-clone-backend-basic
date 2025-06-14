@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { IUserDocument } from "../types/user";
 import { refreshTokenJwtPayload } from "../types/jwt";
 import mongoose from "mongoose";
+import fs from "fs";
 
 const registerUser = asyncHandler(async (req, res) => {
   try {
@@ -26,9 +27,17 @@ const registerUser = asyncHandler(async (req, res) => {
     });
     if (isUserExists) throw new Error("User Already Exists.");
 
-    // Extract avatar and cover image paths from uploaded files
-    console.log(req);
+    const thumbnailSizeLimitForUplaod = 2048000;
 
+    if ((req.files as any)?.avatar[0].size > thumbnailSizeLimitForUplaod) {
+      throw new Error("Thumbnail must be less than 2 MB.");
+    }
+
+    if ((req.files as any)?.cover[0].size > thumbnailSizeLimitForUplaod) {
+      throw new Error("Cover must be less than 2 MB.");
+    }
+
+    // Extract avatar and cover image paths from uploaded files
     const avatarLocalPath = (req.files as any)?.avatar[0].path;
     const coverLocalPath =
       !!req.files?.length && (req.files as any)?.cover[0].path;
@@ -71,6 +80,8 @@ const registerUser = asyncHandler(async (req, res) => {
   } catch (error: any) {
     console.warn(error);
     return res.status(400).json(new ApiResponse(400, null, error?.message));
+  } finally {
+    fs.unlinkSync((req.files as any)?.avatar[0].path);
   }
 });
 
@@ -332,6 +343,11 @@ const updateAvatar = asyncHandler(async (req, res) => {
       throw new Error("Profile photo not found.");
     }
 
+    const thumbnailSizeLimitForUplaod = 2048000;
+    if ((req.files as any)?.avatar?.[0].size > thumbnailSizeLimitForUplaod) {
+      throw new Error("Cover must be less than 2 MB.");
+    }
+
     // Upload the image to Cloudinary (or any cloud service you're using)
     const avatar = await uploadOnCloudinary(avatarLocalPath);
 
@@ -360,6 +376,8 @@ const updateAvatar = asyncHandler(async (req, res) => {
       .json(
         new ApiResponse(400, null, error?.message || "Something went wrong.")
       );
+  } finally {
+    fs.unlinkSync((req.files as any)?.avatar?.[0]?.path);
   }
 });
 
@@ -371,6 +389,11 @@ const updateCover = asyncHandler(async (req, res) => {
     // If no cover image found in the request
     if (!coverLocalPath) {
       throw new Error("Cover photo not found.");
+    }
+
+    const thumbnailSizeLimitForUplaod = 2048000;
+    if ((req.files as any)?.cover?.[0].size > thumbnailSizeLimitForUplaod) {
+      throw new Error("Cover must be less than 2 MB.");
     }
 
     // Upload the cover photo to Cloudinary (or your configured service)
@@ -403,6 +426,8 @@ const updateCover = asyncHandler(async (req, res) => {
       .json(
         new ApiResponse(400, null, error?.message || "Something went wrong.")
       );
+  } finally {
+    fs.unlinkSync((req.files as any)?.cover?.[0]?.path);
   }
 });
 

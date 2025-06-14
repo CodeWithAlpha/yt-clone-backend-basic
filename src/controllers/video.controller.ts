@@ -7,6 +7,7 @@ import { IUserDocument } from "../types/user";
 import { ApiResponse } from "../utils/apiResponse";
 import { User } from "../models/user.model";
 import jwt from "jsonwebtoken";
+import fs from "fs";
 
 const uploadVideo = asyncHandler(async (req, res) => {
   try {
@@ -66,6 +67,9 @@ const uploadVideo = asyncHandler(async (req, res) => {
     console.warn(error);
     // Return error response
     return res.status(400).json(new ApiResponse(400, null, error.message));
+  } finally {
+    fs.unlinkSync((req.files as any)?.thumbnail[0].path);
+    fs.unlinkSync((req.files as any)?.videoFile[0].path);
   }
 });
 
@@ -121,6 +125,8 @@ const editVideo = asyncHandler(async (req, res) => {
     console.warn(error);
     // Return error response
     return res.status(400).json(new ApiResponse(400, null, error.message));
+  } finally {
+    fs.unlinkSync((req.file as any)?.path);
   }
 });
 
