@@ -63,6 +63,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
       .status(200)
       .json(new ApiResponse(200, video, "Video upload successfully."));
   } catch (error: any) {
+    console.warn(error);
     // Return error response
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }
@@ -117,6 +118,7 @@ const editVideo = asyncHandler(async (req, res) => {
       .status(200)
       .json(new ApiResponse(200, video, "Video updated successfully"));
   } catch (error: any) {
+    console.warn(error);
     // Return error response
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }
@@ -168,6 +170,7 @@ const getVideosFeed = asyncHandler(async (req, res) => {
     // Return the response
     return res.status(200).json(new ApiResponse(200, videos[0], "Success"));
   } catch (error: any) {
+    console.warn(error);
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }
 });
@@ -321,6 +324,7 @@ const getVideoById = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(200, video, "success"));
   } catch (error: any) {
+    console.warn(error);
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }
 });
@@ -379,6 +383,7 @@ const getMyUploadedVideos = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(200, videos[0], "Success"));
   } catch (error: any) {
+    console.warn(error);
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }
 });

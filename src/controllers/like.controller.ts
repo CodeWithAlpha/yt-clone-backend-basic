@@ -69,6 +69,7 @@ const postLikeVideo = asyncHandler(async (req, res) => {
       .status(200)
       .json(new ApiResponse(200, likedVideo, "Video liked successfully."));
   } catch (error: any) {
+    console.warn(error);
     // Catch and return error as a 400 Bad Request
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }
@@ -140,6 +141,7 @@ const postLikeTheComment = asyncHandler(async (req, res) => {
       .status(200)
       .json(new ApiResponse(200, likedComment, "Comment liked successfully."));
   } catch (error: any) {
+    console.warn(error);
     // Handle any runtime or validation error
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }

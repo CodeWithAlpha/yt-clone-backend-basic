@@ -48,6 +48,7 @@ const subscribeChannel = asyncHandler(async (req, res) => {
       .status(200)
       .json(new ApiResponse(200, null, "Subscribed successfully"));
   } catch (error: any) {
+    console.warn(error);
     // Catch any validation or server error
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }

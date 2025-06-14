@@ -33,6 +33,7 @@ const postComment = asyncHandler(async (req, res) => {
       .status(201)
       .json(new ApiResponse(201, postedComment, "Comment Post Successfully."));
   } catch (error: any) {
+    console.warn(error);
     // Handling any error and sending a 400 Bad Request with the error message
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }

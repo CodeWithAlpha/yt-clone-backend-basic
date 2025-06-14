@@ -37,6 +37,7 @@ export const verifyJWT = asyncHandler(
 
       next();
     } catch (error: any) {
+      console.warn(error);
       return res.status(400).json(new ApiResponse(400, null, error.message));
     }
   }

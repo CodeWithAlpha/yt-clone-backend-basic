@@ -27,6 +27,8 @@ const registerUser = asyncHandler(async (req, res) => {
     if (isUserExists) throw new Error("User Already Exists.");
 
     // Extract avatar and cover image paths from uploaded files
+    console.log(req);
+
     const avatarLocalPath = (req.files as any)?.avatar[0].path;
     const coverLocalPath =
       !!req.files?.length && (req.files as any)?.cover[0].path;
@@ -67,6 +69,7 @@ const registerUser = asyncHandler(async (req, res) => {
       .status(201)
       .json(new ApiResponse(200, createdUser, "User Created Successfully."));
   } catch (error: any) {
+    console.warn(error);
     return res.status(400).json(new ApiResponse(400, null, error?.message));
   }
 });
@@ -128,6 +131,7 @@ const loginUser = asyncHandler(async (req, res) => {
         )
       );
   } catch (error: any) {
+    console.warn(error);
     // ❌ Return error response
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }
@@ -161,6 +165,7 @@ const logoutUser = asyncHandler(async (req, res) => {
       .clearCookie("refreshToken", options)
       .json(new ApiResponse(200, null, "User logged out successfully."));
   } catch (error: any) {
+    console.warn(error);
     // Fallback error handler
     return res
       .status(500)
@@ -236,6 +241,7 @@ const refreshUserToken = asyncHandler(async (req, res) => {
         )
       );
   } catch (error: any) {
+    console.warn(error);
     // Handle and respond with any errors
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }
@@ -287,6 +293,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
       .clearCookie("refreshToken", options)
       .json(new ApiResponse(200, null, "Password successfully changed."));
   } catch (error: any) {
+    console.warn(error);
     // Handle any error and respond with a 400 status
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }
@@ -305,6 +312,7 @@ const userProfile = asyncHandler(async (req, res) => {
         )
       );
   } catch (error: any) {
+    console.warn(error);
     // If an error occurs, return a 400 Bad Request (not 422 here)
     return res
       .status(400)
@@ -345,6 +353,7 @@ const updateAvatar = asyncHandler(async (req, res) => {
       .status(200)
       .json(new ApiResponse(200, updatedUser, "Profile updated successfully."));
   } catch (error: any) {
+    console.warn(error);
     // Handle and return error response
     return res
       .status(400)
@@ -387,6 +396,7 @@ const updateCover = asyncHandler(async (req, res) => {
         new ApiResponse(200, updatedUser, "Cover photo updated successfully.")
       );
   } catch (error: any) {
+    console.warn(error);
     // Handle and respond with error
     return res
       .status(400)
@@ -445,6 +455,7 @@ const updateUser = asyncHandler(async (req, res) => {
       )
     );
   } catch (error: any) {
+    console.warn(error);
     // Send error response
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }
@@ -521,6 +532,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
       .status(200)
       .json(new ApiResponse(200, channel, "Channel found successfully."));
   } catch (error: any) {
+    console.warn(error);
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }
 });
@@ -577,6 +589,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         new ApiResponse(200, watchHistory[0]?.watchHistory || [], "success")
       );
   } catch (error: any) {
+    console.warn(error);
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }
 });
