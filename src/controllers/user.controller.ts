@@ -15,7 +15,6 @@ const registerUser = asyncHandler(async (req, res) => {
     const { username, email, fullname, password } = req.body;
 
     // Check if any required field is missing or empty
-
     if (
       [username, email, fullname, password].some(
         (fields) => fields?.trim === ""
@@ -23,6 +22,8 @@ const registerUser = asyncHandler(async (req, res) => {
     ) {
       throw new Error("All fields are required.");
     }
+
+    console.log(req.files);
 
     // Check if a user already exists with same username or email
     const isUserExists = await User.findOne({
@@ -32,18 +33,26 @@ const registerUser = asyncHandler(async (req, res) => {
 
     const thumbnailSizeLimitForUplaod = 2048000;
 
-    if ((req.files as any)?.avatar[0].size > thumbnailSizeLimitForUplaod) {
+    if (
+      !!(req.files as any)?.avatar?.length &&
+      (req.files as any)?.avatar[0].size > thumbnailSizeLimitForUplaod
+    ) {
       throw new Error("Thumbnail must be less than 2 MB.");
     }
 
-    if ((req.files as any)?.cover[0].size > thumbnailSizeLimitForUplaod) {
+    if (
+      !!(req.files as any)?.cover?.length &&
+      (req.files as any)?.cover[0].size > thumbnailSizeLimitForUplaod
+    ) {
       throw new Error("Cover must be less than 2 MB.");
     }
 
     // Extract avatar and cover image paths from uploaded files
-    const avatarLocalPath = (req.files as any)?.avatar[0].path;
+    const avatarLocalPath =
+      !!(req.files as any)?.avatar?.length &&
+      (req.files as any)?.avatar[0].path;
     const coverLocalPath =
-      !!req.files?.length && (req.files as any)?.cover[0].path;
+      !!(req.files as any)?.cover?.length && (req.files as any)?.cover[0].path;
 
     // Avatar is mandatory
     if (!avatarLocalPath) throw new Error("Avatar field is required.");
