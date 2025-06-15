@@ -15,8 +15,11 @@ const registerUser = asyncHandler(async (req, res) => {
     const { username, email, fullname, password } = req.body;
 
     // Check if any required field is missing or empty
+
     if (
-      [username, email, fullname, password].some((fields) => fields.trim === "")
+      [username, email, fullname, password].some(
+        (fields) => fields?.trim === ""
+      )
     ) {
       throw new Error("All fields are required.");
     }
