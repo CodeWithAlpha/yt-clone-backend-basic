@@ -8,6 +8,7 @@ import { ApiResponse } from "../utils/apiResponse";
 import { User } from "../models/user.model";
 import jwt from "jsonwebtoken";
 import fs from "fs";
+import { logActivity } from "../utils/logger";
 
 const uploadVideo = asyncHandler(async (req, res) => {
   try {
@@ -54,9 +55,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
       description,
       duration: videoFile.duration, // optional: if Cloudinary returns duration
       isPublished,
-      owner: new mongoose.Types.ObjectId(
-        String((req as Request & { user: IUserDocument }).user._id)
-      ),
+      owner: String((req as Request & { user: IUserDocument }).user._id),
     });
 
     // Return success response
@@ -172,6 +171,17 @@ const getVideosFeed = asyncHandler(async (req, res) => {
         },
       },
     ]);
+
+    //logger
+    await logActivity({
+      user: String(
+        String((req as Request & { user: IUserDocument })?.user?._id) || ""
+      ),
+      method: req.method,
+      endpoint: req.originalUrl,
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
 
     // Return the response
     return res.status(200).json(new ApiResponse(200, videos[0], "Success"));
@@ -324,6 +334,15 @@ const getVideoById = asyncHandler(async (req, res) => {
         updatedWatchHistory.unshift(id);
         user.watchHistory = updatedWatchHistory;
 
+        //logger
+        await logActivity({
+          user: String(user._id),
+          method: req.method,
+          endpoint: req.originalUrl,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        });
+
         await user.save({ validateBeforeSave: false });
       }
     }
@@ -346,9 +365,7 @@ const getMyUploadedVideos = asyncHandler(async (req, res) => {
 
     // Build filters dynamically
     const filters: any = {
-      owner: new mongoose.Types.ObjectId(
-        String((req as Request & { user: IUserDocument }).user._id)
-      ),
+      owner: String((req as Request & { user: IUserDocument }).user._id),
     };
 
     if (typeof isPublished !== "undefined") {

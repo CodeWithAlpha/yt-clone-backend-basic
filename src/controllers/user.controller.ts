@@ -8,6 +8,8 @@ import { IUserDocument } from "../types/user";
 import { refreshTokenJwtPayload } from "../types/jwt";
 import mongoose from "mongoose";
 import fs from "fs";
+import { logActivity } from "../utils/logger";
+import { Activity } from "../models/activity.model";
 
 const registerUser = asyncHandler(async (req, res) => {
   try {
@@ -85,6 +87,15 @@ const registerUser = asyncHandler(async (req, res) => {
       throw new Error("Something went wrong while Register the user.");
     }
 
+    //logger
+    await logActivity({
+      user: String(createdUser._id),
+      method: req.method,
+      endpoint: req.originalUrl,
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+
     // Return the successful response
     return res
       .status(201)
@@ -93,12 +104,15 @@ const registerUser = asyncHandler(async (req, res) => {
     console.warn(error);
     return res.status(400).json(new ApiResponse(400, null, error?.message));
   } finally {
+    //log activity
+
     fs.unlinkSync((req.files as any)?.avatar[0].path);
   }
 });
 
 const loginUser = asyncHandler(async (req, res) => {
   try {
+    console.log(req);
     const { username, email, password } = req.body;
 
     // 🔍 Validate required fields
@@ -136,6 +150,15 @@ const loginUser = asyncHandler(async (req, res) => {
       httpOnly: true, // prevents access from JS
       secure: true, // ensures HTTPS only (turn off in dev if needed)
     };
+
+    //logger
+    await logActivity({
+      user: String(updatedUser._id),
+      method: req.method,
+      endpoint: req.originalUrl,
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
 
     // ✅ Send tokens in cookies and response
     return res
@@ -631,6 +654,41 @@ const getWatchHistory = asyncHandler(async (req, res) => {
   }
 });
 
+const getActivity = asyncHandler(async (req, res) => {
+  const userActivity = await Activity.aggregate([
+    { $match: { user: (req as Request & { user: IUserDocument }).user._id } },
+    { $sort: { createdAt: -1 } },
+    {
+      $lookup: {
+        from: "users",
+        localField: "user",
+        foreignField: "_id",
+        as: "user",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              username: 1,
+              fullname: 1,
+              email: 1,
+              avatar: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        user: { $arrayElemAt: ["$user", 0] },
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, userActivity, "Activity found successfully."));
+});
+
 export {
   registerUser,
   loginUser,
@@ -643,4 +701,5 @@ export {
   updateUser,
   getUserChannelProfile,
   getWatchHistory,
+  getActivity,
 };

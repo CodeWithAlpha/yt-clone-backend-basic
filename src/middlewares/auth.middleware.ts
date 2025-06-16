@@ -15,7 +15,9 @@ export const verifyJWT = asyncHandler(
         req.headers?.authorization?.replace("Bearer ", "");
 
       if (!token) {
-        throw new Error("Unathorized Request");
+        return res
+          .status(410)
+          .json(new ApiResponse(410, null, "Unathorized Request"));
       }
 
       //decode token
@@ -37,7 +39,6 @@ export const verifyJWT = asyncHandler(
 
       next();
     } catch (error: any) {
-      console.warn(error);
       return res.status(400).json(new ApiResponse(400, null, error.message));
     }
   }

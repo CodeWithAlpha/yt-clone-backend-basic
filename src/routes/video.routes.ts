@@ -8,6 +8,7 @@ import {
   getVideosFeed,
   uploadVideo,
 } from "../controllers/video.controller";
+import { logRequest } from "../middlewares/activity.middleware";
 
 const router = Router();
 
@@ -23,13 +24,14 @@ router.route("/upload-video").post(
       maxCount: 1,
     },
   ]),
+  logRequest,
   uploadVideo
 );
 router
   .route("/edit-video/:id")
-  .post(verifyJWT, upload.single("thumbnail"), editVideo);
+  .post(verifyJWT, upload.single("thumbnail"), logRequest, editVideo);
 router.route("/video-feeds").get(getVideosFeed);
 router.route("/video/:id").get(getVideoById);
-router.route("/my-videos").get(verifyJWT, getMyUploadedVideos);
+router.route("/my-videos").get(verifyJWT, logRequest, getMyUploadedVideos);
 
 export default router;
