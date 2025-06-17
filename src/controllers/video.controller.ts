@@ -152,7 +152,32 @@ const getVideosFeed = asyncHandler(async (req, res) => {
         // Split data into two facets: metadata & videos
         $facet: {
           metadata: [{ $count: "total" }, { $addFields: { page, limit } }],
-          videos: [{ $skip: skip }, { $limit: limit }],
+          videos: [
+            {
+              $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 1,
+                      fullname: 1,
+                      avatar: 1,
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              $addFields: {
+                owner: { $arrayElemAt: ["$owner", 0] },
+              },
+            },
+            { $skip: skip },
+            { $limit: limit },
+          ],
         },
       },
       {
@@ -377,8 +402,6 @@ const getMyUploadedVideos = asyncHandler(async (req, res) => {
     if (typeof title === "string" && title.trim() !== "") {
       filters.title = { $regex: title.trim(), $options: "i" }; // case-insensitive search
     }
-
-    console.log(filters);
 
     // Run aggregate query with filtering and pagination
     const videos = await Video.aggregate([
