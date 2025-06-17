@@ -365,7 +365,9 @@ const getMyUploadedVideos = asyncHandler(async (req, res) => {
 
     // Build filters dynamically
     const filters: any = {
-      owner: String((req as Request & { user: IUserDocument }).user._id),
+      owner: new mongoose.Types.ObjectId(
+        String((req as Request & { user: IUserDocument }).user._id)
+      ),
     };
 
     if (typeof isPublished !== "undefined") {
@@ -375,6 +377,8 @@ const getMyUploadedVideos = asyncHandler(async (req, res) => {
     if (typeof title === "string" && title.trim() !== "") {
       filters.title = { $regex: title.trim(), $options: "i" }; // case-insensitive search
     }
+
+    console.log(filters);
 
     // Run aggregate query with filtering and pagination
     const videos = await Video.aggregate([
