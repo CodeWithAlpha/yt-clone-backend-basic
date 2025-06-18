@@ -25,6 +25,6 @@ export const logActivity = async ({
       userAgent,
     });
   } catch (err) {
-    console.error("Logging failed:", err);
+    // console.error("Logging failed:", err);
   }
 };

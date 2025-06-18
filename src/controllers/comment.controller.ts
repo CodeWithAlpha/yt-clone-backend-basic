@@ -4,6 +4,7 @@ import { Video } from "../models/video.model";
 import { asyncHandler } from "../utils/asyncHandler";
 import { IUserDocument } from "../types/user";
 import { ApiResponse } from "../utils/apiResponse";
+import mongoose from "mongoose";
 
 const postComment = asyncHandler(async (req, res) => {
   try {
@@ -39,4 +40,72 @@ const postComment = asyncHandler(async (req, res) => {
   }
 });
 
-export { postComment };
+const getComments = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const comments = await Comment.aggregate([
+    {
+      $match: {
+        video: new mongoose.Types.ObjectId(id),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [
+          {
+            $project: {
+              fullname: 1,
+              _id: 1,
+              username: 1,
+              avatar: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "likes",
+        let: { commentId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$comment", "$$commentId"] },
+                  { $eq: ["$likeType", "comment"] },
+                ],
+              },
+            },
+          },
+        ],
+        as: "commentlikes",
+      },
+    },
+    {
+      $addFields: {
+        totalCommentLike: {
+          $size: "$commentlikes",
+        },
+        owner: { $arrayElemAt: ["$owner", 0] },
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        content: 1,
+        owner: 1,
+        updatedAt: 1,
+        totalCommentLike: 1,
+      },
+    },
+  ]);
+
+  return res.status(200).json(new ApiResponse(200, comments, "success"));
+});
+
+export { postComment, getComments };
