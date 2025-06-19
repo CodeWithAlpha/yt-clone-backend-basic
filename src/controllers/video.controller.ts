@@ -217,6 +217,8 @@ const getVideoById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
+    await Video.findByIdAndUpdate(id, { $inc: { views: 1 } });
+
     const video = await Video.aggregate([
       {
         $match: {
@@ -434,6 +436,7 @@ const getMyUploadedVideos = asyncHandler(async (req, res) => {
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }
 });
+
 
 export {
   uploadVideo,
