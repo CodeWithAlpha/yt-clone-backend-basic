@@ -29,10 +29,16 @@ const postComment = asyncHandler(async (req, res) => {
       owner: (req as Request & { user: IUserDocument }).user._id, // user ID from authenticated request
     });
 
+    const populatedComment = await Comment.findById(postedComment._id)
+      .populate("owner", "_id fullname avatar")
+      .select("_id content owner updatedAt");
+
     // Sending success response with 201 status and the created comment
     return res
       .status(201)
-      .json(new ApiResponse(201, postedComment, "Comment Post Successfully."));
+      .json(
+        new ApiResponse(201, populatedComment, "Comment Post Successfully.")
+      );
   } catch (error: any) {
     console.warn(error);
     // Handling any error and sending a 400 Bad Request with the error message
