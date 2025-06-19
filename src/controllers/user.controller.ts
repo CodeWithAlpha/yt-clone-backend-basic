@@ -19,13 +19,12 @@ const registerUser = asyncHandler(async (req, res) => {
     // Check if any required field is missing or empty
     if (
       [username, email, fullname, password].some(
-        (fields) => fields?.trim === ""
+        (fields) => fields?.trim() === ""
       )
     ) {
       throw new Error("All fields are required.");
     }
 
-    console.log(req.files);
 
     // Check if a user already exists with same username or email
     const isUserExists = await User.findOne({
@@ -112,7 +111,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
   try {
-    console.log(req);
     const { username, email, password } = req.body;
 
     // 🔍 Validate required fields
