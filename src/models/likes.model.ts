@@ -29,4 +29,24 @@ const likeSchema = new Schema<ILike>(
   { timestamps: true }
 );
 
+likeSchema.pre("validate", function (next) {
+  const isVideoLike = this.likeType === "video";
+  const isCommentLike = this.likeType === "comment";
+
+  if (isVideoLike && !this.video) {
+    return next(new Error("Video ID is required for video like."));
+  }
+
+  if (isCommentLike && !this.comment) {
+    return next(new Error("Comment ID is required for comment like."));
+  }
+
+  if (this.video && this.comment) {
+    return next(new Error("A like can only be for a video or a comment, not both."));
+  }
+
+  next();
+});
+
+
 export const Like: Model<ILike> = mongoose.model<ILike>("Like", likeSchema);

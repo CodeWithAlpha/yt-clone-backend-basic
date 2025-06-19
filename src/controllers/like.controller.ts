@@ -4,6 +4,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { IUserDocument } from "../types/user";
 import { ApiResponse } from "../utils/apiResponse";
 import { Like } from "../models/likes.model";
+import mongoose from "mongoose";
 
 const postLikeVideo = asyncHandler(async (req, res) => {
   try {
@@ -147,16 +148,39 @@ const postLikeTheComment = asyncHandler(async (req, res) => {
   }
 });
 
-const getVideoLikes = asyncHandler(async (req, res) => {
-  const { videoId } = req.params;
-
-  const likes = await Like.aggregate([
+const getLikedVideos = asyncHandler(async (req, res) => {
+  const userId = (req as Request & { user: IUserDocument }).user
+      ._id as string;
+  const likedVideos = await Like.aggregate([
     {
-      $match: { videoId },
+      $match: { 
+        likedBy: new mongoose.Types.ObjectId(String(userId)),
+        likeType:'video'
+       },
     },
+    {
+      $lookup:{
+        from: 'videos',
+        localField: "video",
+        foreignField:"_id",
+        as: 'video'
+      }
+    },
+    {
+      $unwind :{
+        path: "$video"
+      }
+    },
+    {
+      $project:{
+        video: 1
+      }
+    }
   ]);
 
-  console.log(likes);
+  return res
+  .status(200)
+  .json(new ApiResponse(200, likedVideos, "success."));
 });
 
-export { postLikeVideo, postLikeTheComment, getVideoLikes };
+export { postLikeVideo, postLikeTheComment, getLikedVideos };
