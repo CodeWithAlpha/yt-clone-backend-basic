@@ -88,9 +88,6 @@ const editVideo = asyncHandler(async (req, res) => {
       throw new Error("Video does not exist");
     }
 
-    // Log uploaded file for debugging (optional)
-    console.log(req.file);
-
     // Get uploaded thumbnail path
     const thumbnailLocalPath = await (req.file as any)?.path;
 
@@ -219,6 +216,8 @@ const getVideosFeed = asyncHandler(async (req, res) => {
 const getVideoById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
+
+    await Video.findByIdAndUpdate(id, { $inc: { views: 1 } });
 
     const video = await Video.aggregate([
       {
@@ -437,6 +436,7 @@ const getMyUploadedVideos = asyncHandler(async (req, res) => {
     return res.status(400).json(new ApiResponse(400, null, error.message));
   }
 });
+
 
 export {
   uploadVideo,

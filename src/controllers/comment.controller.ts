@@ -29,10 +29,50 @@ const postComment = asyncHandler(async (req, res) => {
       owner: (req as Request & { user: IUserDocument }).user._id, // user ID from authenticated request
     });
 
+    const [populatedComment] = await Comment.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(String(postedComment._id)),
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "owner",
+          foreignField: "_id",
+          as: "owner",
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                fullname: 1,
+                avatar: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          owner: { $arrayElemAt: ["$owner", 0] },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          content: 1,
+          owner: 1,
+          updatedAt: 1,
+        },
+      },
+    ]);
+
     // Sending success response with 201 status and the created comment
     return res
       .status(201)
-      .json(new ApiResponse(201, postedComment, "Comment Post Successfully."));
+      .json(
+        new ApiResponse(201, populatedComment, "Comment Post Successfully.")
+      );
   } catch (error: any) {
     console.warn(error);
     // Handling any error and sending a 400 Bad Request with the error message
