@@ -88,9 +88,6 @@ const editVideo = asyncHandler(async (req, res) => {
       throw new Error("Video does not exist");
     }
 
-    // Log uploaded file for debugging (optional)
-    console.log(req.file);
-
     // Get uploaded thumbnail path
     const thumbnailLocalPath = await (req.file as any)?.path;
 

@@ -2,7 +2,6 @@
 import { NextFunction, Request, Response } from "express";
 import { logActivity } from "../utils/logger";
 import { IUserDocument } from "../types/user";
-import mongoose from "mongoose";
 
 export const logRequest = async (
   req: Request,

@@ -155,8 +155,7 @@ const getVideoLikes = asyncHandler(async (req, res) => {
       $match: { videoId },
     },
   ]);
-
-  console.log(likes);
+  return res.status(200).json(new ApiResponse(200, likes, "Success"));
 });
 
 export { postLikeVideo, postLikeTheComment, getVideoLikes };
