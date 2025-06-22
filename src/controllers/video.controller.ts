@@ -437,6 +437,22 @@ const getMyUploadedVideos = asyncHandler(async (req, res) => {
   }
 });
 
+const videosByChannel = asyncHandler(async (req, res) => {
+  try {
+    const { channelId } = req.params;
+
+    const videos = await Video.aggregate([
+      {
+        $match: {
+          owner: new mongoose.Types.ObjectId(channelId as string),
+        },
+      },
+    ]);
+  } catch (error: any) {
+    console.warn(error);
+    return res.status(400).json(new ApiResponse(400, null, error.message));
+  }
+});
 
 export {
   uploadVideo,
