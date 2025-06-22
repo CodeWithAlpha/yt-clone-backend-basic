@@ -145,7 +145,8 @@ const loginUser = asyncHandler(async (req, res) => {
     // 🍪 Cookie options
     const options = {
       httpOnly: true, // prevents access from JS
-      secure: true, // ensures HTTPS only (turn off in dev if needed)
+      secure: false, // ensures HTTPS only (turn off in dev if needed)
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     };
 
     //logger
@@ -197,8 +198,9 @@ const logoutUser = asyncHandler(async (req, res) => {
 
     // Cookie options (secure + httpOnly)
     const options = {
-      httpOnly: true,
-      secure: true, // set to false if testing on HTTP (localhost)
+      httpOnly: true, // prevents access from JS
+      secure: false, // ensures HTTPS only (turn off in dev if needed)
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     };
 
     // Clear cookies and respond
@@ -265,6 +267,7 @@ const refreshUserToken = asyncHandler(async (req, res) => {
     const options = {
       httpOnly: true,
       secure: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     };
 
     // Send response with updated user and new tokens
@@ -327,6 +330,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     const options = {
       httpOnly: true,
       secure: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     };
 
     // Clear tokens and send success response
